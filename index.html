@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head><meta charset="UTF-8"><title>Login - Tesouraria</title><link rel="stylesheet" href="style.css"></head>
+<body>
+    <div class="container" style="max-width: 400px;">
+        <h1>Tesouraria</h1>
+        <input type="email" id="email" placeholder="E-mail">
+        <input type="password" id="password" placeholder="Senha">
+        <button id="btnLogin">Entrar</button>
+        <p id="msg" style="color:red; text-align:center;"></p>
+    </div>
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        document.getElementById('btnLogin').onclick = async () => {
+            try {
+                const userCred = await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+                const userDoc = await getDoc(doc(db, "users", userCred.user.uid));
+                const data = userDoc.data();
+                if (data.role === 'admin') window.location.href = 'admin.html';
+                else { localStorage.setItem('unitId', data.unitId); window.location.href = 'unidade.html'; }
+            } catch (e) { document.getElementById('msg').innerText = "Erro: " + e.message; }
+        };
+    </script>
+</body>
+</html>
