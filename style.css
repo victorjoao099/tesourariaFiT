@@ -34,13 +34,12 @@ body {
 }
 
 h1,
-h2,
-h3 {
+h2 {
     color: var(--primary);
     text-align: center;
 }
 
-/* Formulários e Inputs */
+/* Formulários */
 .input-group {
     position: relative;
     width: 100%;
@@ -57,7 +56,7 @@ select {
     background-color: white;
 }
 
-/* Alinhamento do Ícone de Senha */
+/* Fix do Ícone de Senha */
 #password {
     padding-right: 50px;
 }
@@ -79,7 +78,7 @@ select {
     z-index: 5;
 }
 
-/* Botões com Cores Sólidas */
+/* Botões */
 button {
     width: 100%;
     padding: 15px;
@@ -95,7 +94,8 @@ button {
 }
 
 #btnLogin,
-#btnSalvar {
+#btnSalvar,
+#btnCadastrarMembro {
     background-color: var(--success) !important;
     color: white !important;
 }
@@ -104,7 +104,8 @@ button {
     background-color: var(--primary) !important;
     color: white !important;
     padding: 10px;
-    font-size: 14px;
+    font-size: 13px;
+    height: auto;
 }
 
 .btn-zap {
@@ -119,7 +120,7 @@ button {
 .btn-excel {
     background-color: var(--excel) !important;
     color: white !important;
-    margin-bottom: 15px;
+    margin: 15px 0;
 }
 
 .btn-sair {
@@ -144,7 +145,11 @@ button {
     font-size: 2.5rem;
 }
 
-/* Tabela Profissional e Responsiva */
+.card-saldo h3 {
+    color: white !important;
+}
+
+/* Tabela Responsiva */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -177,7 +182,6 @@ th {
     display: block;
 }
 
-/* Tabela vira Card no Mobile */
 @media (max-width: 600px) {
     table thead {
         display: none;
