@@ -4,7 +4,9 @@
 :root {
     --primary: #1a2a6c;
     --success: #27ae60;
+    --excel: #1d6f42;
     --danger: #c0392b;
+    --whatsapp: #25d366;
     --bg: #f4f7f6;
     --white: #ffffff;
 }
@@ -38,7 +40,7 @@ h3 {
     text-align: center;
 }
 
-/* Formulários Mobile-First */
+/* Formulários e Inputs */
 .input-group {
     position: relative;
     width: 100%;
@@ -52,9 +54,10 @@ select {
     border: 1.5px solid #ddd;
     border-radius: 10px;
     font-size: 16px;
+    background-color: white;
 }
 
-/* Ajuste do Ícone de Senha */
+/* Alinhamento do Ícone de Senha */
 #password {
     padding-right: 50px;
 }
@@ -76,7 +79,7 @@ select {
     z-index: 5;
 }
 
-/* Botões com Cores Garantidas */
+/* Botões com Cores Sólidas */
 button {
     width: 100%;
     padding: 15px;
@@ -85,6 +88,10 @@ button {
     font-size: 16px;
     font-weight: 700;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 #btnLogin,
@@ -100,13 +107,28 @@ button {
     font-size: 14px;
 }
 
+.btn-zap {
+    background-color: var(--whatsapp) !important;
+    color: white !important;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    padding: 0;
+}
+
+.btn-excel {
+    background-color: var(--excel) !important;
+    color: white !important;
+    margin-bottom: 15px;
+}
+
 .btn-sair {
     background-color: #e2e8f0 !important;
     color: #4a5568 !important;
     margin-top: 20px;
 }
 
-/* Cartão de Saldo */
+/* Card de Saldo */
 .card-saldo {
     background: var(--primary);
     color: white;
@@ -122,7 +144,7 @@ button {
     font-size: 2.5rem;
 }
 
-/* Tabelas que viram Cards no Mobile */
+/* Tabela Profissional e Responsiva */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -155,6 +177,7 @@ th {
     display: block;
 }
 
+/* Tabela vira Card no Mobile */
 @media (max-width: 600px) {
     table thead {
         display: none;

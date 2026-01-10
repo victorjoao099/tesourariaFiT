@@ -4,13 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administração</title>
+    <title>Painel Admin</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
     <div class="container">
-        <h2>Novo Lançamento</h2>
+        <h2>Lançar Movimentação</h2>
         <input type="text" id="desc" placeholder="Descrição">
         <input type="number" id="valor" placeholder="Valor R$">
         <select id="unitId">
@@ -24,20 +25,27 @@
             <input type="date" id="venc">
         </div>
         <button id="btnSalvar">Confirmar Registro</button>
-        <hr>
-        <h3>Fluxo Pendente</h3>
-        <table>
+
+        <hr style="margin: 25px 0;">
+
+        <button id="btnExportar" class="btn-excel">
+            <span class="material-symbols-outlined">description</span> Exportar Fluxo Excel
+        </button>
+
+        <h3>Fluxo de Caixa Pendente</h3>
+        <table id="tabelaAdmin">
             <thead>
                 <tr>
-                    <th>Venc.</th>
+                    <th>Vencimento</th>
                     <th>Unidade</th>
                     <th>Valor</th>
-                    <th>Ação</th>
+                    <th>Baixa</th>
+                    <th>Notificar</th>
                 </tr>
             </thead>
             <tbody id="lista"></tbody>
         </table>
-        <button id="btnSair" class="btn-sair">Sair do Painel</button>
+        <button id="btnSair" class="btn-sair">Sair do Sistema</button>
     </div>
 
     <script type="module">
@@ -46,23 +54,48 @@
         import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const hoje = new Date().toISOString().split('T')[0];
-        const formatarData = (dISO) => { if (!dISO) return "---"; const [a, m, dia] = dISO.split('-'); return `${dia}/${m}/${a}`; };
+        const formatarData = (dISO) => { if (!dISO) return "---"; const [a, m, d] = dISO.split('-'); return `${d}/${m}/${a}`; };
 
-        // Carregar Unidades
-        const snapU = await getDocs(collection(db, "units"));
-        const select = document.getElementById('unitId');
-        select.innerHTML = '';
-        snapU.forEach(d => select.innerHTML += `<option value="${d.id}">${d.data().name}</option>`);
+        const unidadesMap = {};
 
-        // Dar Baixa com Proteção de Existência
+        // Carregar Unidades e Telefones
+        const carregarUnidades = async () => {
+            const snap = await getDocs(collection(db, "units"));
+            const select = document.getElementById('unitId');
+            select.innerHTML = '';
+            snap.forEach(d => {
+                const data = d.data();
+                unidadesMap[d.id] = { name: data.name, telefone: data.telefone || "" };
+                select.innerHTML += `<option value="${d.id}">${data.name}</option>`;
+            });
+            carregarTabela();
+        };
+
+        // Exportar Excel
+        document.getElementById('btnExportar').onclick = () => {
+            const wb = XLSX.utils.table_to_book(document.getElementById('tabelaAdmin'));
+            XLSX.writeFile(wb, `Relatorio_Geral_${new Date().toLocaleDateString()}.xlsx`);
+        };
+
+        // Notificação WhatsApp (Apenas se atrasado)
+        window.notificarZap = (uId, descricao, valor, vencimento) => {
+            const unit = unidadesMap[uId];
+            if (!unit || !unit.telefone) return alert("Telefone não cadastrado!");
+            const dataBr = formatarData(vencimento);
+            const msg = encodeURIComponent(`Olá, Unidade ${unit.name}! 🛡️\n\nA pendência de *${descricao}* (R$ ${Number(valor).toFixed(2)}), vencida em *${dataBr}*, está atrasada. Consegue nos enviar o comprovante?`);
+            window.open(`https://wa.me/${unit.telefone}?text=${msg}`, '_blank');
+        };
+
+        // Baixa com Segurança
         window.darBaixa = async (id, uId, valor, tipo) => {
-            if (!confirm("Confirmar baixa deste valor?")) return;
-            const uSnap = await getDoc(doc(db, "units", uId));
-            if (!uSnap.exists()) return alert("Erro: Unidade não encontrada no banco!");
+            if (!confirm("Confirmar pagamento?")) return;
+            const uRef = doc(db, "units", uId);
+            const uSnap = await getDoc(uRef);
+            if (!uSnap.exists()) return alert("Unidade não encontrada!");
 
             const batch = writeBatch(db);
             batch.update(doc(db, "transacoes", id), { status: 'pago' });
-            batch.update(doc(db, "units", uId), { balance: (Number(uSnap.data().balance) || 0) + (tipo === 'entrada' ? valor : -valor) });
+            batch.update(uRef, { balance: (Number(uSnap.data().balance) || 0) + (tipo === 'entrada' ? valor : -valor) });
             await batch.commit(); location.reload();
         };
 
@@ -78,22 +111,29 @@
             await batch.commit(); location.reload();
         };
 
-        // Carregar Tabela
-        const q = query(collection(db, "transacoes"), orderBy("vencimento", "asc"));
-        const snapT = await getDocs(q);
-        snapT.forEach(d => {
-            const i = d.data();
-            if (i.status === 'pago') return;
-            const atrasado = i.vencimento < hoje;
-            document.getElementById('lista').innerHTML += `
-                <tr class="${atrasado ? 'linha-atrasada' : ''}">
-                    <td data-label="Vencimento">${formatarData(i.vencimento)} ${atrasado ? '<span class="txt-atrasado">ATRASADO</span>' : ''}</td>
-                    <td data-label="Unidade">${i.unidadeId}</td>
-                    <td data-label="Valor">R$ ${i.valor.toFixed(2)}</td>
-                    <td data-label="Ação"><button class="btn-baixa" onclick="darBaixa('${d.id}','${i.unidadeId}',${i.valor},'${i.tipo}')">Baixa</button></td>
-                </tr>`;
-        });
+        // Renderizar Tabela
+        const carregarTabela = async () => {
+            const q = query(collection(db, "transacoes"), orderBy("vencimento", "asc"));
+            const snap = await getDocs(q);
+            const lista = document.getElementById('lista');
+            snap.forEach(d => {
+                const i = d.data();
+                if (i.status === 'pago') return;
+                const atrasado = i.vencimento < hoje;
+                const botaoZap = atrasado ? `<button class="btn-zap" onclick="notificarZap('${i.unidadeId}','${i.descricao}',${i.valor},'${i.vencimento}')"><span class="material-symbols-outlined">chat</span></button>` : '<span style="color:#ccc; font-size:12px;">No prazo</span>';
 
+                lista.innerHTML += `
+                    <tr class="${atrasado ? 'linha-atrasada' : ''}">
+                        <td data-label="Vencimento">${formatarData(i.vencimento)} ${atrasado ? '<span class="txt-atrasado">ATRASADO</span>' : ''}</td>
+                        <td data-label="Unidade">${unidadesMap[i.unidadeId]?.name || i.unidadeId}</td>
+                        <td data-label="Valor">R$ ${i.valor.toFixed(2)}</td>
+                        <td data-label="Baixa"><button class="btn-baixa" onclick="darBaixa('${d.id}','${i.unidadeId}',${i.valor},'${i.tipo}')">Baixa</button></td>
+                        <td data-label="Notificar">${botaoZap}</td>
+                    </tr>`;
+            });
+        };
+
+        carregarUnidades();
         document.getElementById('btnSair').onclick = () => signOut(auth).then(() => window.location.href = 'index.html');
     </script>
 </body>

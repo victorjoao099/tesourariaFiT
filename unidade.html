@@ -6,25 +6,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minha Unidade</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
     <div class="container">
-        <h2 id="uNome">Buscando unidade...</h2>
+        <h2 id="uNome">Carregando extrato...</h2>
         <div class="card-saldo">
-            <h3>Saldo em Caixa</h3>
+            <h3>Saldo Atual</h3>
             <h1 id="uSaldo">R$ 0,00</h1>
         </div>
-        <h3 style="color: var(--warning);">⚠️ Pendentes</h3>
-        <table>
+
+        <button id="btnExcelUnidade" class="btn-excel">
+            <span class="material-symbols-outlined">download</span> Exportar Extrato Excel
+        </button>
+
+        <h3 style="color: var(--danger);">⚠️ Pendentes</h3>
+        <table id="tabPendentes">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Desc.</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
             <tbody id="corpoPendentes"></tbody>
         </table>
+
         <hr>
+
         <h3>✅ Histórico Pago</h3>
-        <table>
+        <table id="tabPagos">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Desc.</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
             <tbody id="corpoPagos"></tbody>
         </table>
-        <button id="btnSair" class="btn-sair">Sair do Sistema</button>
+
+        <button id="btnSair" class="btn-sair">Sair</button>
     </div>
 
     <script type="module">
@@ -36,21 +59,33 @@
         const hoje = new Date().toISOString().split('T')[0];
         const formatarData = (dISO) => { if (!dISO) return "---"; const [a, m, dia] = dISO.split('-'); return `${dia}/${m}/${a}`; };
 
-        const carregar = async () => {
-            if (!uId) { window.location.href = 'index.html'; return; }
-            const uSnap = await getDoc(doc(db, "units", uId));
+        // Exportação Multi-aba
+        document.getElementById('btnExcelUnidade').onclick = () => {
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(document.getElementById('tabPendentes')), "Pendentes");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(document.getElementById('tabPagos')), "Pagos");
+            XLSX.writeFile(wb, `Extrato_Unidade_${new Date().toLocaleDateString()}.xlsx`);
+        };
 
+        const carregar = async () => {
+            if (!uId) return window.location.href = 'index.html';
+            const uSnap = await getDoc(doc(db, "units", uId));
             if (uSnap.exists()) {
                 document.getElementById('uNome').innerText = "Unidade: " + uSnap.data().name;
                 document.getElementById('uSaldo').innerText = `R$ ${Number(uSnap.data().balance || 0).toFixed(2)}`;
-            } else { document.getElementById('uNome').innerText = "Unidade não cadastrada!"; return; }
+            }
 
             const q = query(collection(db, "transacoes"), where("unidadeId", "==", uId), orderBy("vencimento", "asc"));
             const tSnap = await getDocs(q);
             tSnap.forEach(d => {
                 const i = d.data();
                 const atrasado = i.status === 'pendente' && i.vencimento < hoje;
-                const linha = `<tr class="${atrasado ? 'linha-atrasada' : ''}"><td data-label="Data">${formatarData(i.vencimento)}</td><td data-label="Desc.">${i.descricao}</td><td data-label="Valor" class="${i.tipo}">${i.tipo === 'entrada' ? '+' : '-'} R$ ${Number(i.valor).toFixed(2)}</td></tr>`;
+                const linha = `
+                    <tr class="${atrasado ? 'linha-atrasada' : ''}">
+                        <td data-label="Data">${formatarData(i.vencimento)}</td>
+                        <td data-label="Desc.">${i.descricao}</td>
+                        <td data-label="Valor" class="${i.tipo}">${i.tipo === 'entrada' ? '+' : '-'} R$ ${Number(i.valor).toFixed(2)}</td>
+                    </tr>`;
                 document.getElementById(i.status === 'pendente' ? 'corpoPendentes' : 'corpoPagos').innerHTML += linha;
             });
         };
