@@ -5,7 +5,6 @@
     --primary: #1a2a6c;
     --success: #27ae60;
     --danger: #c0392b;
-    --warning: #f39c12;
     --bg: #f4f7f6;
     --white: #ffffff;
 }
@@ -39,7 +38,7 @@ h3 {
     text-align: center;
 }
 
-/* Formulários */
+/* Formulários Mobile-First */
 .input-group {
     position: relative;
     width: 100%;
@@ -55,19 +54,14 @@ select {
     font-size: 16px;
 }
 
-input:focus {
-    border-color: var(--primary);
-    outline: none;
-}
-
-/* Ícone de Senha Alinhado à Direita */
+/* Ajuste do Ícone de Senha */
 #password {
-    padding-right: 45px;
+    padding-right: 50px;
 }
 
 .btn-eye {
     position: absolute;
-    right: 8px;
+    right: 5px;
     top: 50%;
     transform: translateY(-50%);
     background: transparent !important;
@@ -77,12 +71,12 @@ input:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     z-index: 5;
 }
 
-/* Botões com Cores Sólidas */
+/* Botões com Cores Garantidas */
 button {
     width: 100%;
     padding: 15px;
@@ -102,8 +96,8 @@ button {
 .btn-baixa {
     background-color: var(--primary) !important;
     color: white !important;
-    padding: 8px;
-    font-size: 13px;
+    padding: 10px;
+    font-size: 14px;
 }
 
 .btn-sair {
@@ -112,7 +106,7 @@ button {
     margin-top: 20px;
 }
 
-/* Card de Saldo */
+/* Cartão de Saldo */
 .card-saldo {
     background: var(--primary);
     color: white;
@@ -125,9 +119,10 @@ button {
 .card-saldo h1 {
     color: white !important;
     margin: 0;
+    font-size: 2.5rem;
 }
 
-/* Tabela Profissional e Responsiva */
+/* Tabelas que viram Cards no Mobile */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -143,13 +138,14 @@ td {
 
 th {
     background: #f8f9fa;
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
     color: #666;
 }
 
 .linha-atrasada {
     background-color: #fff5f5 !important;
+    border-left: 4px solid var(--danger);
 }
 
 .txt-atrasado {
@@ -167,7 +163,7 @@ th {
     table tr {
         display: block;
         border: 1px solid #eee;
-        border-radius: 10px;
+        border-radius: 12px;
         margin-bottom: 10px;
         padding: 10px;
         background: #fff;

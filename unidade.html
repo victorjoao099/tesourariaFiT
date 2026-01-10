@@ -4,33 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Unidade - Extrato</title>
+    <title>Minha Unidade</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
-        <h2 id="uNome">...</h2>
+        <h2 id="uNome">Buscando unidade...</h2>
         <div class="card-saldo">
-            <span>Saldo Atual</span>
+            <h3>Saldo em Caixa</h3>
             <h1 id="uSaldo">R$ 0,00</h1>
         </div>
-
-        <section>
-            <h3>⚠️ Pendentes</h3>
-            <table role="table">
-                <tbody id="corpoPendentes"></tbody>
-            </table>
-        </section>
-
-        <section style="margin-top: 30px;">
-            <h3>✅ Histórico</h3>
-            <table role="table">
-                <tbody id="corpoPagos"></tbody>
-            </table>
-        </section>
-
-        <button id="btnSair" class="btn-sair">Sair</button>
+        <h3 style="color: var(--warning);">⚠️ Pendentes</h3>
+        <table>
+            <tbody id="corpoPendentes"></tbody>
+        </table>
+        <hr>
+        <h3>✅ Histórico Pago</h3>
+        <table>
+            <tbody id="corpoPagos"></tbody>
+        </table>
+        <button id="btnSair" class="btn-sair">Sair do Sistema</button>
     </div>
 
     <script type="module">
@@ -40,26 +34,23 @@
 
         const uId = localStorage.getItem('unitId');
         const hoje = new Date().toISOString().split('T')[0];
+        const formatarData = (dISO) => { if (!dISO) return "---"; const [a, m, dia] = dISO.split('-'); return `${dia}/${m}/${a}`; };
 
         const carregar = async () => {
-            if (!uId) return window.location.href = 'index.html';
+            if (!uId) { window.location.href = 'index.html'; return; }
             const uSnap = await getDoc(doc(db, "units", uId));
+
             if (uSnap.exists()) {
-                document.getElementById('uNome').innerText = uSnap.data().name;
+                document.getElementById('uNome').innerText = "Unidade: " + uSnap.data().name;
                 document.getElementById('uSaldo').innerText = `R$ ${Number(uSnap.data().balance || 0).toFixed(2)}`;
-            }
+            } else { document.getElementById('uNome').innerText = "Unidade não cadastrada!"; return; }
 
             const q = query(collection(db, "transacoes"), where("unidadeId", "==", uId), orderBy("vencimento", "asc"));
             const tSnap = await getDocs(q);
             tSnap.forEach(d => {
                 const i = d.data();
                 const atrasado = i.status === 'pendente' && i.vencimento < hoje;
-                const linha = `
-                    <tr class="${atrasado ? 'linha-atrasada' : ''}">
-                        <td data-label="Data">${i.vencimento} ${atrasado ? '<span class="badge-atrasado">⚠️ ATRASADO</span>' : ''}</td>
-                        <td data-label="Desc.">${i.descricao}</td>
-                        <td data-label="Valor" class="${i.tipo}">${i.tipo === 'entrada' ? '+' : '-'} R$ ${Number(i.valor).toFixed(2)}</td>
-                    </tr>`;
+                const linha = `<tr class="${atrasado ? 'linha-atrasada' : ''}"><td data-label="Data">${formatarData(i.vencimento)}</td><td data-label="Desc.">${i.descricao}</td><td data-label="Valor" class="${i.tipo}">${i.tipo === 'entrada' ? '+' : '-'} R$ ${Number(i.valor).toFixed(2)}</td></tr>`;
                 document.getElementById(i.status === 'pendente' ? 'corpoPendentes' : 'corpoPagos').innerHTML += linha;
             });
         };

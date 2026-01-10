@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Clube</title>
+    <title>Administração</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
-        <h2>Lançar Movimentação</h2>
+        <h2>Novo Lançamento</h2>
         <input type="text" id="desc" placeholder="Descrição">
         <input type="number" id="valor" placeholder="Valor R$">
         <select id="unitId">
@@ -23,7 +23,7 @@
             </select>
             <input type="date" id="venc">
         </div>
-        <button id="btnSalvar">Confirmar Lançamento</button>
+        <button id="btnSalvar">Confirmar Registro</button>
         <hr>
         <h3>Fluxo Pendente</h3>
         <table>
@@ -37,7 +37,7 @@
             </thead>
             <tbody id="lista"></tbody>
         </table>
-        <button id="btnSair" class="btn-sair">Sair</button>
+        <button id="btnSair" class="btn-sair">Sair do Painel</button>
     </div>
 
     <script type="module">
@@ -46,38 +46,39 @@
         import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const hoje = new Date().toISOString().split('T')[0];
+        const formatarData = (dISO) => { if (!dISO) return "---"; const [a, m, dia] = dISO.split('-'); return `${dia}/${m}/${a}`; };
 
-        // Popular unidades no select
+        // Carregar Unidades
         const snapU = await getDocs(collection(db, "units"));
         const select = document.getElementById('unitId');
         select.innerHTML = '';
         snapU.forEach(d => select.innerHTML += `<option value="${d.id}">${d.data().name}</option>`);
 
-        // Registrar
+        // Dar Baixa com Proteção de Existência
+        window.darBaixa = async (id, uId, valor, tipo) => {
+            if (!confirm("Confirmar baixa deste valor?")) return;
+            const uSnap = await getDoc(doc(db, "units", uId));
+            if (!uSnap.exists()) return alert("Erro: Unidade não encontrada no banco!");
+
+            const batch = writeBatch(db);
+            batch.update(doc(db, "transacoes", id), { status: 'pago' });
+            batch.update(doc(db, "units", uId), { balance: (Number(uSnap.data().balance) || 0) + (tipo === 'entrada' ? valor : -valor) });
+            await batch.commit(); location.reload();
+        };
+
+        // Salvar Lançamento
         document.getElementById('btnSalvar').onclick = async () => {
             const val = parseFloat(document.getElementById('valor').value);
-            const uId = document.getElementById('unitId').value;
-            const t = document.getElementById('tipo').value;
             const batch = writeBatch(db);
-            const tRef = doc(collection(db, "transacoes"));
-
-            batch.set(tRef, { descricao: document.getElementById('desc').value, valor: val, unidadeId: uId, tipo: t, vencimento: document.getElementById('venc').value, status: 'pendente', dataCriacao: serverTimestamp() });
+            batch.set(doc(collection(db, "transacoes")), {
+                descricao: document.getElementById('desc').value, valor: val,
+                unidadeId: document.getElementById('unitId').value, tipo: document.getElementById('tipo').value,
+                vencimento: document.getElementById('venc').value, status: 'pendente', dataCriacao: serverTimestamp()
+            });
             await batch.commit(); location.reload();
         };
 
-        // Baixa
-        window.darBaixa = async (id, uId, valor, tipo) => {
-            if (!confirm("Confirmar pagamento?")) return;
-            const batch = writeBatch(db);
-            const uSnap = await getDoc(doc(db, "units", uId));
-            const saldoAtual = Number(uSnap.data().balance || 0);
-
-            batch.update(doc(db, "transacoes", id), { status: 'pago' });
-            batch.update(doc(db, "units", uId), { balance: saldoAtual + (tipo === 'entrada' ? valor : -valor) });
-            await batch.commit(); location.reload();
-        };
-
-        // Tabela
+        // Carregar Tabela
         const q = query(collection(db, "transacoes"), orderBy("vencimento", "asc"));
         const snapT = await getDocs(q);
         snapT.forEach(d => {
@@ -86,7 +87,7 @@
             const atrasado = i.vencimento < hoje;
             document.getElementById('lista').innerHTML += `
                 <tr class="${atrasado ? 'linha-atrasada' : ''}">
-                    <td data-label="Vencimento">${i.vencimento} ${atrasado ? '<span class="txt-atrasado">ATRASADO</span>' : ''}</td>
+                    <td data-label="Vencimento">${formatarData(i.vencimento)} ${atrasado ? '<span class="txt-atrasado">ATRASADO</span>' : ''}</td>
                     <td data-label="Unidade">${i.unidadeId}</td>
                     <td data-label="Valor">R$ ${i.valor.toFixed(2)}</td>
                     <td data-label="Ação"><button class="btn-baixa" onclick="darBaixa('${d.id}','${i.unidadeId}',${i.valor},'${i.tipo}')">Baixa</button></td>
