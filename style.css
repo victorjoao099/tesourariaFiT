@@ -3,13 +3,11 @@
 
 :root {
     --primary: #1a2a6c;
-    /* Azul Escuro */
     --success: #27ae60;
-    /* Verde */
     --danger: #c0392b;
-    /* Vermelho */
-    --gray: #f4f7f6;
-    --border: #e1e4e8;
+    --warning: #f39c12;
+    --bg: #f4f7f6;
+    --white: #ffffff;
 }
 
 * {
@@ -19,163 +17,175 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #f0f2f5;
+    background-color: var(--bg);
     margin: 0;
-    padding: 15px;
+    padding: 10px;
 }
 
 .container {
-    background: #ffffff;
+    background: var(--white);
     width: 100%;
     max-width: 800px;
-    margin: 20px auto;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin: 15px auto;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
-/* --- BOTÕES ORGANIZADOS --- */
-button {
-    width: 100%;
-    padding: 14px;
-    margin: 10px 0;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
+h1,
+h2,
+h3 {
+    color: var(--primary);
+    text-align: center;
 }
 
-/* Forçando as cores para não ficarem brancos */
-button#btnLogin,
-button#btnSalvar {
-    background-color: var(--success) !important;
-    color: #ffffff !important;
-}
-
-button.btn-baixa {
-    background-color: var(--primary) !important;
-    color: #ffffff !important;
-    padding: 8px 12px;
-    font-size: 14px;
-}
-
-button.btn-sair {
-    background-color: #e2e8f0 !important;
-    color: #4a5568 !important;
-    margin-top: 20px;
-}
-
-button:hover {
-    filter: brightness(0.9);
-}
-
-/* --- INPUTS E ÍCONE --- */
+/* Formulários */
 .input-group {
     position: relative;
     width: 100%;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
 input,
 select {
     width: 100%;
-    padding: 12px 15px;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
+    padding: 14px;
+    border: 1.5px solid #ddd;
+    border-radius: 10px;
     font-size: 16px;
-    outline: none;
 }
 
 input:focus {
     border-color: var(--primary);
+    outline: none;
+}
+
+/* Ícone de Senha Alinhado à Direita */
+#password {
+    padding-right: 45px;
 }
 
 .btn-eye {
     position: absolute;
-    right: 10px;
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
     background: transparent !important;
-    color: #94a3b8 !important;
-    width: auto;
-    padding: 5px;
+    border: none;
+    color: #888 !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    z-index: 5;
+}
+
+/* Botões com Cores Sólidas */
+button {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#btnLogin,
+#btnSalvar {
+    background-color: var(--success) !important;
+    color: white !important;
+}
+
+.btn-baixa {
+    background-color: var(--primary) !important;
+    color: white !important;
+    padding: 8px;
+    font-size: 13px;
+}
+
+.btn-sair {
+    background-color: #e2e8f0 !important;
+    color: #4a5568 !important;
+    margin-top: 20px;
+}
+
+/* Card de Saldo */
+.card-saldo {
+    background: var(--primary);
+    color: white;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.card-saldo h1 {
+    color: white !important;
     margin: 0;
 }
 
-/* --- TABELA BEM FEITA --- */
+/* Tabela Profissional e Responsiva */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
-    border: 1px solid var(--border);
+    margin-top: 15px;
+}
+
+th,
+td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
 }
 
 th {
-    background-color: #f8fafc;
-    color: #64748b;
+    background: #f8f9fa;
     font-size: 12px;
     text-transform: uppercase;
-    padding: 12px;
-    text-align: left;
-    border-bottom: 2px solid var(--border);
+    color: #666;
 }
 
-td {
-    padding: 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 15px;
+.linha-atrasada {
+    background-color: #fff5f5 !important;
 }
 
-tr:hover {
-    background-color: #fdfdfd;
+.txt-atrasado {
+    color: var(--danger);
+    font-size: 11px;
+    font-weight: bold;
+    display: block;
 }
 
-/* Responsividade Mobile (Cards) */
 @media (max-width: 600px) {
-
-    table,
-    thead,
-    tbody,
-    th,
-    td,
-    tr {
-        display: block;
-        border: none;
-    }
-
-    thead tr {
+    table thead {
         display: none;
     }
 
-    tr {
-        margin-bottom: 15px;
-        border: 1px solid var(--border);
+    table tr {
+        display: block;
+        border: 1px solid #eee;
         border-radius: 10px;
+        margin-bottom: 10px;
         padding: 10px;
         background: #fff;
     }
 
-    td {
+    table td {
         display: flex;
         justify-content: space-between;
-        padding: 8px 5px;
-        border-bottom: 1px dashed #eee;
-    }
-
-    td:last-child {
         border: none;
+        padding: 8px 5px;
+        text-align: right;
     }
 
-    td::before {
+    table td::before {
         content: attr(data-label);
         font-weight: bold;
-        color: #64748b;
+        color: #888;
+        text-align: left;
         font-size: 12px;
     }
 }

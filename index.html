@@ -3,28 +3,25 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tesouraria - Acesso</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Tesouraria</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <div class="container">
-        <h1>Tesouraria</h1>
-
+    <div class="container" style="max-width: 400px; margin-top: 10vh;">
+        <h1>🛡️ Tesouraria</h1>
         <div class="input-group">
-            <input type="email" id="email" placeholder="E-mail" aria-label="E-mail">
+            <input type="email" id="email" placeholder="E-mail">
         </div>
-
         <div class="input-group">
-            <input type="password" id="password" placeholder="Senha" aria-label="Senha">
-            <button type="button" id="togglePass" class="btn-eye" aria-label="Mostrar/Esconder senha">
+            <input type="password" id="password" placeholder="Senha">
+            <button type="button" id="togglePass" class="btn-eye">
                 <span class="material-symbols-outlined" id="eyeIcon">visibility</span>
             </button>
         </div>
-
         <button id="btnLogin">Acessar Sistema</button>
-        <p id="msg" style="color:red; text-align:center; margin-top:15px; font-weight:600;"></p>
+        <p id="msg" style="color:red; text-align:center; font-size:14px;"></p>
     </div>
 
     <script type="module">
@@ -36,14 +33,12 @@
         const inputPass = document.getElementById('password');
         const eyeIcon = document.getElementById('eyeIcon');
 
-        // Lógica de Troca de Ícone
         btnPass.onclick = () => {
             const isPass = inputPass.type === 'password';
             inputPass.type = isPass ? 'text' : 'password';
             eyeIcon.innerText = isPass ? 'visibility_off' : 'visibility';
         };
 
-        // Login
         document.getElementById('btnLogin').onclick = async () => {
             try {
                 const userCred = await signInWithEmailAndPassword(auth, document.getElementById('email').value, inputPass.value);
@@ -51,7 +46,7 @@
                 const data = userDoc.data();
                 if (data.role === 'admin') window.location.href = 'admin.html';
                 else { localStorage.setItem('unitId', data.unitId); window.location.href = 'unidade.html'; }
-            } catch (e) { document.getElementById('msg').innerText = "Credenciais incorretas."; }
+            } catch (e) { document.getElementById('msg').innerText = "Acesso negado."; }
         };
     </script>
 </body>
