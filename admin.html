@@ -3,105 +3,87 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Tesouraria</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Controle Geral</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
-        <h2>Painel do Tesoureiro</h2>
-        <div id="form">
-            <input type="text" id="desc" placeholder="Descrição (Ex: Mensalidade)">
-            <input type="number" id="valor" placeholder="Valor R$">
-            <select id="unitId">
-                <option value="">Carregando unidades...</option>
-            </select>
-            <select id="tipo">
-                <option value="entrada">Entrada (Unidade paga ao clube)</option>
-                <option value="saida">Saída (Clube gasta para unidade)</option>
-            </select>
-            <select id="status">
-                <option value="pendente">Pendente</option>
-                <option value="pago">Pago</option>
-            </select>
-            <input type="date" id="venc">
-            <button id="btnSalvar">Lançar Movimentação</button>
-        </div>
-        <hr>
-        <h3>Fluxo de Caixa Geral</h3>
-        <table>
+        <h2>Novo Lançamento</h2>
+        <input type="text" id="desc" placeholder="Descrição (ex: Mensalidade Setembro)">
+        <input type="number" id="valor" placeholder="Valor R$ 0,00" step="0.01">
+        <select id="unitId" aria-label="Selecionar Unidade">
+            <option>Carregando...</option>
+        </select>
+        <select id="tipo" aria-label="Tipo de transação">
+            <option value="entrada">Entrada (Unidade paga ao clube)</option>
+            <option value="saida">Saída (Clube paga para unidade)</option>
+        </select>
+        <input type="date" id="venc" aria-label="Data de vencimento">
+        <button id="btnSalvar">Registrar no Fluxo</button>
+
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+
+        <h3>Fluxo de Caixa</h3>
+        <table role="table">
             <thead>
                 <tr>
-                    <th>Vencimento</th>
+                    <th>Venc.</th>
                     <th>Unidade</th>
                     <th>Descrição</th>
                     <th>Valor</th>
-                    <th>Status</th>
                     <th>Ação</th>
                 </tr>
             </thead>
             <tbody id="lista"></tbody>
         </table>
-        <button id="btnSair" class="btn-sair">Sair</button>
+        <button id="btnSair" class="btn-sair">Sair do Sistema</button>
     </div>
+
     <script type="module">
         import { auth, db } from './firebase-config.js';
-        import { collection, doc, getDoc, getDocs, writeBatch, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, writeBatch, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const hoje = new Date().toISOString().split('T')[0];
 
-        // Carregar Unidades no Select
-        const carregarUnidades = async () => {
+        const popularUnidades = async () => {
             const snap = await getDocs(collection(db, "units"));
             const select = document.getElementById('unitId');
             select.innerHTML = '';
             snap.forEach(d => select.innerHTML += `<option value="${d.id}">${d.data().name}</option>`);
         };
 
-        // Salvar Lançamento
-        document.getElementById('btnSalvar').onclick = async () => {
-            const val = parseFloat(document.getElementById('valor').value);
-            const uId = document.getElementById('unitId').value;
-            const t = document.getElementById('tipo').value;
-            const st = document.getElementById('status').value;
-            const batch = writeBatch(db);
-            const tRef = doc(collection(db, "transacoes"));
-
-            batch.set(tRef, { descricao: document.getElementById('desc').value, valor: val, unidadeId: uId, tipo: t, vencimento: document.getElementById('venc').value, status: st, dataCriacao: serverTimestamp() });
-
-            if (st === 'pago') {
-                const uRef = doc(db, "units", uId);
-                const uSnap = await getDoc(uRef);
-                batch.update(uRef, { balance: (Number(uSnap.data().balance) || 0) + (t === 'entrada' ? val : -val) });
-            }
-            await batch.commit(); location.reload();
-        };
-
-        // Dar Baixa
         window.confirmarPagamento = async (id, uId, valor, tipo) => {
-            const uRef = doc(db, "units", uId);
-            const uSnap = await getDoc(uRef);
-            if (!uSnap.exists()) return alert("Unidade não existe!");
-
+            if (!confirm("Confirmar recebimento?")) return;
             const batch = writeBatch(db);
+            const uSnap = await getDoc(doc(db, "units", uId));
             batch.update(doc(db, "transacoes", id), { status: 'pago' });
-            batch.update(uRef, { balance: (Number(uSnap.data().balance) || 0) + (tipo === 'entrada' ? valor : -valor) });
+            batch.update(doc(db, "units", uId), { balance: (uSnap.data().balance || 0) + (tipo === 'entrada' ? valor : -valor) });
             await batch.commit(); location.reload();
         };
 
         const carregarTabela = async () => {
             const q = query(collection(db, "transacoes"), orderBy("vencimento", "asc"));
             const snap = await getDocs(q);
+            const lista = document.getElementById('lista');
             snap.forEach(d => {
                 const i = d.data();
-                const isAtrasado = i.status === 'pendente' && i.vencimento < hoje;
-                const btn = i.status === 'pendente' ? `<button class="btn-baixa" onclick="confirmarPagamento('${d.id}','${i.unidadeId}',${i.valor},'${i.tipo}')">Baixa</button>` : '✅';
-                document.getElementById('lista').innerHTML += `<tr class="${isAtrasado ? 'linha-atrasada' : ''}"><td>${i.vencimento}</td><td>${i.unidadeId}</td><td>${i.descricao}</td><td class="${i.tipo}">R$ ${Number(i.valor).toFixed(2)}</td><td>${i.status}</td><td>${btn}</td></tr>`;
+                if (i.status === 'pago') return;
+                const atrasado = i.vencimento < hoje;
+                lista.innerHTML += `
+                    <tr class="${atrasado ? 'linha-atrasada' : ''}">
+                        <td data-label="Vencimento">${i.vencimento} ${atrasado ? '<span class="badge-atrasado">ATRASADO</span>' : ''}</td>
+                        <td data-label="Unidade">${i.unidadeId}</td>
+                        <td data-label="Descrição">${i.descricao}</td>
+                        <td data-label="Valor" class="${i.tipo}">R$ ${Number(i.valor).toFixed(2)}</td>
+                        <td data-label="Ação"><button onclick="confirmarPagamento('${d.id}','${i.unidadeId}',${i.valor},'${i.tipo}')" style="padding:5px 10px; font-size:12px">Baixa</button></td>
+                    </tr>`;
             });
         };
 
-        carregarUnidades(); carregarTabela();
+        popularUnidades(); carregarTabela();
         document.getElementById('btnSair').onclick = () => signOut(auth).then(() => window.location.href = 'index.html');
     </script>
 </body>

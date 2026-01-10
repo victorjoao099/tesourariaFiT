@@ -3,42 +3,36 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Minha Unidade</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Unidade - Extrato</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
-        <h2 id="uNome">Carregando...</h2>
+        <h2 id="uNome">...</h2>
         <div class="card-saldo">
-            <h3>Saldo em Caixa (Real)</h3>
+            <span>Saldo Atual</span>
             <h1 id="uSaldo">R$ 0,00</h1>
         </div>
-        <h3 style="color: #f39c12;">⚠️ Valores Pendentes</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Vencimento</th>
-                    <th>Descrição</th>
-                    <th>Valor</th>
-                </tr>
-            </thead>
-            <tbody id="corpoPendentes"></tbody>
-        </table>
-        <hr>
-        <h3>✅ Histórico Pago</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Descrição</th>
-                    <th>Valor</th>
-                </tr>
-            </thead>
-            <tbody id="corpoPagos"></tbody>
-        </table>
+
+        <section>
+            <h3>⚠️ Pendentes</h3>
+            <table role="table">
+                <tbody id="corpoPendentes"></tbody>
+            </table>
+        </section>
+
+        <section style="margin-top: 30px;">
+            <h3>✅ Histórico</h3>
+            <table role="table">
+                <tbody id="corpoPagos"></tbody>
+            </table>
+        </section>
+
         <button id="btnSair" class="btn-sair">Sair</button>
     </div>
+
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { doc, getDoc, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -48,52 +42,26 @@
         const hoje = new Date().toISOString().split('T')[0];
 
         const carregar = async () => {
-            console.log("Iniciando busca para a unidade:", uId);
-
+            if (!uId) return window.location.href = 'index.html';
             const uSnap = await getDoc(doc(db, "units", uId));
             if (uSnap.exists()) {
-                document.getElementById('uNome').innerText = "Unidade: " + uSnap.data().name;
+                document.getElementById('uNome').innerText = uSnap.data().name;
                 document.getElementById('uSaldo').innerText = `R$ ${Number(uSnap.data().balance || 0).toFixed(2)}`;
             }
 
-            // Criamos a consulta
             const q = query(collection(db, "transacoes"), where("unidadeId", "==", uId), orderBy("vencimento", "asc"));
-
-            try {
-                const tSnap = await getDocs(q);
-                console.log("Quantidade de transações encontradas:", tSnap.size);
-
-                if (tSnap.empty) {
-                    console.warn("Nenhuma transação encontrada para este ID de unidade no banco.");
-                }
-
-                document.getElementById('corpoPendentes').innerHTML = "";
-                document.getElementById('corpoPagos').innerHTML = "";
-
-                tSnap.forEach(d => {
-                    const i = d.data();
-                    console.log("Processando item:", i.descricao, "Status:", i.status);
-
-                    const atrasado = i.status === 'pendente' && i.vencimento < hoje;
-                    const valorFormatado = Number(i.valor).toFixed(2);
-
-                    const linha = `<tr class="${atrasado ? 'linha-atrasada' : ''}">
-                <td>${i.vencimento} ${atrasado ? '<span class="texto-atrasado">⚠️ EM ATRASO</span>' : ''}</td>
-                <td>${i.descricao}</td>
-                <td class="${i.tipo}">${i.tipo === 'entrada' ? '+' : '-'} R$ ${valorFormatado}</td>
-            </tr>`;
-
-                    // Verificação rigorosa do status
-                    if (i.status.trim().toLowerCase() === 'pendente') {
-                        document.getElementById('corpoPendentes').innerHTML += linha;
-                    } else if (i.status.trim().toLowerCase() === 'pago') {
-                        document.getElementById('corpoPagos').innerHTML += linha;
-                    }
-                });
-            } catch (error) {
-                console.error("Erro na consulta do Firebase:", error);
-                alert("Erro ao buscar dados. Verifique o console (F12) para o link do índice.");
-            }
+            const tSnap = await getDocs(q);
+            tSnap.forEach(d => {
+                const i = d.data();
+                const atrasado = i.status === 'pendente' && i.vencimento < hoje;
+                const linha = `
+                    <tr class="${atrasado ? 'linha-atrasada' : ''}">
+                        <td data-label="Data">${i.vencimento} ${atrasado ? '<span class="badge-atrasado">⚠️ ATRASADO</span>' : ''}</td>
+                        <td data-label="Desc.">${i.descricao}</td>
+                        <td data-label="Valor" class="${i.tipo}">${i.tipo === 'entrada' ? '+' : '-'} R$ ${Number(i.valor).toFixed(2)}</td>
+                    </tr>`;
+                document.getElementById(i.status === 'pendente' ? 'corpoPendentes' : 'corpoPagos').innerHTML += linha;
+            });
         };
         carregar();
         document.getElementById('btnSair').onclick = () => { localStorage.clear(); signOut(auth).then(() => window.location.href = 'index.html'); };
