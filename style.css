@@ -1,13 +1,15 @@
-/* Importação de Ícones e Fontes */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 :root {
     --primary: #1a2a6c;
-    --accent: #27ae60;
+    /* Azul Escuro */
+    --success: #27ae60;
+    /* Verde */
     --danger: #c0392b;
-    --bg: #f0f2f5;
-    --white: #ffffff;
+    /* Vermelho */
+    --gray: #f4f7f6;
+    --border: #e1e4e8;
 }
 
 * {
@@ -17,85 +19,124 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--bg);
+    background-color: #f0f2f5;
     margin: 0;
     padding: 15px;
 }
 
 .container {
-    background: var(--white);
+    background: #ffffff;
     width: 100%;
-    max-width: 450px;
+    max-width: 800px;
     margin: 20px auto;
     padding: 30px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
-h1 {
-    color: var(--primary);
-    text-align: center;
-    margin-bottom: 25px;
+/* --- BOTÕES ORGANIZADOS --- */
+button {
+    width: 100%;
+    padding: 14px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
 }
 
-/* FIX DO ÍCONE: O segredo está no position relative aqui */
+/* Forçando as cores para não ficarem brancos */
+button#btnLogin,
+button#btnSalvar {
+    background-color: var(--success) !important;
+    color: #ffffff !important;
+}
+
+button.btn-baixa {
+    background-color: var(--primary) !important;
+    color: #ffffff !important;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+button.btn-sair {
+    background-color: #e2e8f0 !important;
+    color: #4a5568 !important;
+    margin-top: 20px;
+}
+
+button:hover {
+    filter: brightness(0.9);
+}
+
+/* --- INPUTS E ÍCONE --- */
 .input-group {
     position: relative;
     width: 100%;
     margin-bottom: 15px;
-    display: flex;
-    align-items: center;
 }
 
 input,
-select,
-button {
+select {
     width: 100%;
-    padding: 15px;
-    border: 1.5px solid #e1e4e8;
-    border-radius: 12px;
+    padding: 12px 15px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
     font-size: 16px;
-}
-
-/* Espaço extra na direita para o ícone não bater no texto */
-input[type="password"],
-input[type="text"] {
-    padding-right: 50px;
+    outline: none;
 }
 
 input:focus {
     border-color: var(--primary);
-    outline: none;
 }
 
-/* BOTÃO DO OLHO: Posicionamento absoluto corrigido */
 .btn-eye {
     position: absolute;
-    right: 12px;
-    /* Força o ícone para a direita */
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 44px;
-    /* Tamanho ideal para toque no celular */
-    width: 44px;
-    z-index: 10;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent !important;
+    color: #94a3b8 !important;
+    width: auto;
+    padding: 5px;
+    margin: 0;
 }
 
-button#btnLogin {
-    background-color: var(--accent);
-    color: white;
-    border: none;
-    font-weight: 700;
-    margin-top: 10px;
-    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.2);
+/* --- TABELA BEM FEITA --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    border: 1px solid var(--border);
 }
 
-/* Tabelas que viram Cards no Mobile */
+th {
+    background-color: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+}
+
+tr:hover {
+    background-color: #fdfdfd;
+}
+
+/* Responsividade Mobile (Cards) */
 @media (max-width: 600px) {
 
     table,
@@ -105,31 +146,36 @@ button#btnLogin {
     td,
     tr {
         display: block;
+        border: none;
     }
 
     thead tr {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
+        display: none;
     }
 
     tr {
-        border: 1px solid #eee;
-        border-radius: 12px;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
         padding: 10px;
+        background: #fff;
     }
 
     td {
-        border: none;
         display: flex;
         justify-content: space-between;
         padding: 8px 5px;
+        border-bottom: 1px dashed #eee;
+    }
+
+    td:last-child {
+        border: none;
     }
 
     td::before {
         content: attr(data-label);
         font-weight: bold;
-        color: #7f8c8d;
+        color: #64748b;
+        font-size: 12px;
     }
 }
