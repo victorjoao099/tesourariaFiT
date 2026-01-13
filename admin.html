@@ -13,28 +13,32 @@
     <div class="container">
         <h2>🛡️ Tesouraria Geral</h2>
 
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        <div
+            style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ddd;">
             <h3>Novo Membro</h3>
-            <input type="text" id="membroNome" placeholder="Nome">
-            <select id="membroUnidade"></select>
-            <button id="btnCadastrarMembro" class="btn-primary">Cadastrar</button>
+            <input type="text" id="membroNome" placeholder="Nome do Desbravador">
+            <select id="membroUnidade">
+                <option>Carregando unidades...</option>
+            </select>
+            <button id="btnCadastrarMembro" class="btn-primary">Cadastrar Membro</button>
         </div>
 
-        <div style="background: #eef2ff; padding: 15px; border-radius: 10px; margin-bottom: 25px;">
+        <div
+            style="background: #eef2ff; padding: 15px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #1a2a6c44;">
             <h3>Lançar Débito (Subtrai da Unidade)</h3>
             <input type="text" id="desc" placeholder="Descrição">
-            <input type="number" id="valor" placeholder="R$ 0,00" step="0.01">
+            <input type="number" id="valor" placeholder="Valor R$" step="0.01">
             <select id="selectMembro"></select>
             <input type="date" id="venc">
-            <button id="btnSalvar" class="btn-success">Confirmar</button>
+            <button id="btnSalvar" class="btn-success">Confirmar e Subtrair Saldo</button>
         </div>
 
         <div style="display: flex; gap: 10px; margin: 20px 0;">
-            <input type="text" id="buscaMembro" placeholder="🔍 Buscar..." style="flex: 2; margin:0;">
-            <button id="btnExcel" class="btn-excel" style="flex: 1;">Excel</button>
+            <input type="text" id="buscaMembro" placeholder="🔍 Buscar membro ou status..." style="flex: 2; margin:0;">
+            <button id="btnExcel" class="btn-excel" style="flex: 1; height: 50px;">Excel</button>
         </div>
 
-        <table id="tabelaDados">
+        <table id="tabelaAdmin">
             <thead>
                 <tr>
                     <th>Vencimento</th>
@@ -47,12 +51,14 @@
             <tbody id="lista"></tbody>
         </table>
 
-        <button id="btnSair" class="btn-sair">Sair</button>
+        <button id="btnSair" class="btn-sair"
+            onclick="signOut(auth).then(() => window.location.href='index.html')">Sair</button>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { collection, doc, getDoc, getDocs, writeBatch, serverTimestamp, query, orderBy, where, addDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const hoje = new Date().toISOString().split('T')[0]; // 2026-01-12
         const formatarData = (d) => d.split('-').reverse().join('/');
@@ -61,11 +67,16 @@
 
         const inicializar = async () => {
             const snapU = await getDocs(collection(db, "units"));
-            snapU.forEach(d => { unidadesMap[d.id] = { name: d.data().name, tel: d.data().telefone || "" }; });
+            const selU = document.getElementById('membroUnidade');
+            selU.innerHTML = '';
+            snapU.forEach(d => {
+                unidadesMap[d.id] = { name: d.data().name, tel: d.data().telefone || "" };
+                selU.innerHTML += `<option value="${d.id}">${d.data().name}</option>`;
+            });
 
             const snapM = await getDocs(collection(db, "members"));
             const selM = document.getElementById('selectMembro');
-            selM.innerHTML = '<option value="">Membro</option>';
+            selM.innerHTML = '<option value="">Selecionar Membro</option>';
             snapM.forEach(d => {
                 membrosMap[d.id] = { name: d.data().name, unitId: d.data().unitId };
                 selM.innerHTML += `<option value="${d.id}">${d.data().name}</option>`;
@@ -73,7 +84,7 @@
             carregarTabela();
         };
 
-        // SALVAR: Unidade fica negativa imediatamente
+        // Lógica de Saldo Negativo Automático
         document.getElementById('btnSalvar').onclick = async () => {
             const mId = document.getElementById('selectMembro').value;
             const val = parseFloat(document.getElementById('valor').value);
@@ -85,23 +96,39 @@
                 unidadeId: uId, vencimento: document.getElementById('venc').value,
                 status: 'pendente', dataCriacao: serverTimestamp()
             });
+            // Subtrai da unidade imediatamente
             batch.update(doc(db, "units", uId), { balance: increment(-val) });
             batch.update(doc(db, "members", mId), { debt: increment(val) });
+
             await batch.commit(); location.reload();
         };
 
-        // BAIXA: Devolve o saldo à unidade
         window.darBaixa = async (id, mId, uId, valor) => {
             if (!confirm("Confirmar pagamento?")) return;
             const batch = writeBatch(db);
             batch.update(doc(db, "transacoes", id), { status: 'pago' });
-            batch.update(doc(db, "units", uId), { balance: increment(valor) });
+            batch.update(doc(db, "units", uId), { balance: increment(valor) }); // Devolve o saldo
             batch.update(doc(db, "members", mId), { debt: increment(-valor) });
             await batch.commit(); location.reload();
         };
 
+        window.excluirTransacao = async (id, mId, uId, valor, status, nome) => {
+            if (!confirm(`Excluir conta de ${nome}?`)) return;
+            const batch = writeBatch(db);
+            if (status === 'pendente') {
+                batch.update(doc(db, "units", uId), { balance: increment(valor) }); // Reverte o negativo
+                batch.update(doc(db, "members", mId), { debt: increment(-valor) });
+            } else {
+                batch.update(doc(db, "units", uId), { balance: increment(-valor) });
+                batch.update(doc(db, "members", mId), { debt: increment(valor) });
+            }
+            batch.delete(doc(db, "transacoes", id));
+            await batch.commit(); location.reload();
+        };
+
         const carregarTabela = async () => {
-            const snap = await getDocs(query(collection(db, "transacoes"), orderBy("vencimento", "asc")));
+            const q = query(collection(db, "transacoes"), orderBy("vencimento", "asc"));
+            const snap = await getDocs(q);
             const lista = document.getElementById('lista');
             lista.innerHTML = '';
 
@@ -109,8 +136,13 @@
                 const i = d.data();
                 const m = membrosMap[i.membroId];
                 const isPago = i.status === 'pago';
-                const atrasado = !isPago && i.vencimento < hoje; // Comparação com 12/01/2026
-                const btnZap = atrasado ? `<button class="btn-mini btn-zap" onclick="notificarZap('${i.unidadeId}','${i.descricao}',${i.valor},'${i.vencimento}')"><span class="material-symbols-outlined">chat</span></button>` : '';
+                const atrasado = !isPago && i.vencimento < hoje;
+
+                // WhatsApp só para Pendentes E Atrasados
+                const btnZap = atrasado ? `
+                    <button class="btn-mini btn-zap" onclick="notificarZap('${i.unidadeId}','${i.descricao}',${i.valor},'${i.vencimento}')">
+                        <span class="material-symbols-outlined">chat</span>
+                    </button>` : '';
 
                 lista.innerHTML += `
                     <tr class="${atrasado ? 'linha-atrasada' : ''}">
@@ -130,7 +162,10 @@
         };
 
         inicializar();
-        document.getElementById('btnExcel').onclick = () => XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('tabelaDados')), "Relatorio.xlsx");
+        document.getElementById('buscaMembro').oninput = function () {
+            const t = this.value.toLowerCase();
+            document.querySelectorAll('#lista tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(t) ? '' : 'none');
+        };
     </script>
 </body>
 
