@@ -26,7 +26,7 @@ body {
 .container {
     background: var(--white);
     width: 100%;
-    max-width: 800px;
+    max-width: 900px;
     margin: 15px auto;
     padding: 25px;
     border-radius: 15px;
@@ -34,18 +34,13 @@ body {
 }
 
 h1,
-h2 {
+h2,
+h3 {
     color: var(--primary);
     text-align: center;
 }
 
 /* Formulários */
-.input-group {
-    position: relative;
-    width: 100%;
-    margin-bottom: 12px;
-}
-
 input,
 select {
     width: 100%;
@@ -54,28 +49,7 @@ select {
     border-radius: 10px;
     font-size: 16px;
     background-color: white;
-}
-
-/* Fix do Ícone de Senha */
-#password {
-    padding-right: 50px;
-}
-
-.btn-eye {
-    position: absolute;
-    right: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent !important;
-    border: none;
-    color: #888 !important;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    z-index: 5;
+    margin-bottom: 10px;
 }
 
 /* Botões */
@@ -93,28 +67,14 @@ button {
     gap: 8px;
 }
 
-#btnLogin,
-#btnSalvar,
-#btnCadastrarMembro {
+.btn-success {
     background-color: var(--success) !important;
     color: white !important;
 }
 
-.btn-baixa {
+.btn-primary {
     background-color: var(--primary) !important;
     color: white !important;
-    padding: 10px;
-    font-size: 13px;
-    height: auto;
-}
-
-.btn-zap {
-    background-color: var(--whatsapp) !important;
-    color: white !important;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    padding: 0;
 }
 
 .btn-excel {
@@ -129,24 +89,29 @@ button {
     margin-top: 20px;
 }
 
-/* Card de Saldo */
-.card-saldo {
-    background: var(--primary);
-    color: white;
-    padding: 25px;
-    border-radius: 12px;
-    text-align: center;
-    margin-bottom: 20px;
+/* Botões de Ação na Tabela */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
 }
 
-.card-saldo h1 {
-    color: white !important;
-    margin: 0;
-    font-size: 2.5rem;
+.btn-mini {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    padding: 0;
+    flex-shrink: 0;
 }
 
-.card-saldo h3 {
+.btn-zap {
+    background-color: var(--whatsapp) !important;
     color: white !important;
+}
+
+.btn-delete {
+    background-color: transparent !important;
+    color: var(--danger) !important;
 }
 
 /* Tabela Responsiva */
@@ -175,14 +140,7 @@ th {
     border-left: 4px solid var(--danger);
 }
 
-.txt-atrasado {
-    color: var(--danger);
-    font-size: 11px;
-    font-weight: bold;
-    display: block;
-}
-
-@media (max-width: 600px) {
+@media (max-width: 700px) {
     table thead {
         display: none;
     }
@@ -193,7 +151,6 @@ th {
         border-radius: 12px;
         margin-bottom: 10px;
         padding: 10px;
-        background: #fff;
     }
 
     table td {

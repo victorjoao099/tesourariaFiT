@@ -4,89 +4,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin - Tesouraria</title>
+    <title>Admin - IASD Boa Esperança</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
     <div class="container">
-        <h2>👥 Cadastro de Membros</h2>
-        <div style="display: grid; gap: 8px; margin-bottom: 25px;">
+        <h2>🛡️ Tesouraria Geral</h2>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <h3>Novo Membro</h3>
             <input type="text" id="membroNome" placeholder="Nome do Desbravador">
             <select id="membroUnidade">
                 <option>Carregando unidades...</option>
             </select>
-            <button id="btnCadastrarMembro">Cadastrar Membro</button>
+            <button id="btnCadastrarMembro" class="btn-primary">Cadastrar Membro</button>
+        </div>
+
+        <div style="background: #eef2ff; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <h3>Lançar Débito</h3>
+            <input type="text" id="desc" placeholder="Descrição (Ex: Mensalidade Fev)">
+            <input type="number" id="valor" placeholder="Valor R$" step="0.01">
+            <select id="selectMembro">
+                <option value="">Selecione o Membro</option>
+            </select>
+            <input type="date" id="venc">
+            <button id="btnSalvar" class="btn-success">Confirmar Lançamento</button>
         </div>
 
         <hr>
 
-        <h2>💰 Lançar Dívida</h2>
-        <div style="display: grid; gap: 8px;">
-            <input type="text" id="desc" placeholder="Descrição (Ex: Mensalidade Fev)">
-            <input type="number" id="valor" placeholder="Valor R$ 0,00" step="0.01">
-            <select id="selectMembro">
-                <option value="">Selecione um Membro</option>
-            </select>
-            <input type="date" id="venc">
-            <button id="btnSalvar">Confirmar Registro</button>
+        <div style="display: flex; gap: 10px; margin: 15px 0;">
+            <input type="text" id="buscaMembro" placeholder="🔍 Buscar membro..." style="flex: 2; margin:0;">
+            <button id="btnExcel" class="btn-excel" style="flex: 1; margin:0;">Excel</button>
         </div>
 
-        <button id="btnExportar" class="btn-excel">
-            <span class="material-symbols-outlined">description</span> Exportar Fluxo Excel
-        </button>
-
-        <h3>Contas a Receber</h3>
-        <table id="tabelaDados">
+        <table id="tabelaAdmin">
             <thead>
                 <tr>
                     <th>Vencimento</th>
-                    <th>Membro (Unidade)</th>
+                    <th>Membro</th>
                     <th>Valor</th>
-                    <th>Baixa</th>
-                    <th>Cobragem</th>
+                    <th>Ações</th>
                 </tr>
             </thead>
             <tbody id="lista"></tbody>
         </table>
+
         <button id="btnSair" class="btn-sair">Sair do Sistema</button>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase-config.js';
-        import { collection, doc, getDoc, getDocs, writeBatch, serverTimestamp, query, orderBy, where, addDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, writeBatch, serverTimestamp, query, orderBy, where, addDoc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const hoje = new Date().toISOString().split('T')[0];
-        const formatarData = (dISO) => { if (!dISO) return "---"; const [a, m, d] = dISO.split('-'); return `${d}/${m}/${a}`; };
-
+        const formatarData = (d) => d.split('-').reverse().join('/');
         const unidadesMap = {};
         const membrosMap = {};
 
+        // Inicialização de Dados
         const inicializar = async () => {
             const snapU = await getDocs(collection(db, "units"));
-            const selU = document.getElementById('membroUnidade');
-            selU.innerHTML = '';
+            document.getElementById('membroUnidade').innerHTML = '';
             snapU.forEach(d => {
-                const data = d.data();
-                unidadesMap[d.id] = { name: data.name, tel: data.telefone || "" };
-                selU.innerHTML += `<option value="${d.id}">${data.name}</option>`;
+                unidadesMap[d.id] = { name: d.data().name, tel: d.data().telefone || "" };
+                document.getElementById('membroUnidade').innerHTML += `<option value="${d.id}">${d.data().name}</option>`;
             });
 
             const snapM = await getDocs(collection(db, "members"));
-            const selM = document.getElementById('selectMembro');
-            selM.innerHTML = '<option value="">Selecione um Membro</option>';
+            document.getElementById('selectMembro').innerHTML = '<option value="">Selecione um Membro</option>';
             snapM.forEach(d => {
-                const mData = d.data();
-                membrosMap[d.id] = { name: mData.name, unitId: mData.unitId };
-                selM.innerHTML += `<option value="${d.id}">${mData.name} (${unidadesMap[mData.unitId].name})</option>`;
+                membrosMap[d.id] = { name: d.data().name, unitId: d.data().unitId };
+                document.getElementById('selectMembro').innerHTML += `<option value="${d.id}">${d.data().name}</option>`;
             });
             carregarTabela();
         };
 
-        window.darBaixaMembro = async (id, mId, uId, valor) => {
-            if (!confirm("Confirmar recebimento?")) return;
+        // Função de Exclusão com Estorno
+        window.excluirTransacao = async (id, mId, uId, valor, status, nome) => {
+            if (!confirm(`Excluir lançamento de ${nome}?`)) return;
+            const batch = writeBatch(db);
+
+            // Se já foi pago, retira do saldo da unidade. Se pendente, apenas limpa a dívida do membro.
+            if (status === 'pago') {
+                batch.update(doc(db, "units", uId), { balance: increment(-valor) });
+                batch.update(doc(db, "members", mId), { debt: increment(valor) }); // Reverte a baixa da dívida
+            } else {
+                batch.update(doc(db, "members", mId), { debt: increment(-valor) });
+            }
+
+            batch.delete(doc(db, "transacoes", id));
+            await batch.commit(); location.reload();
+        };
+
+        // Função de Baixa
+        window.darBaixa = async (id, mId, uId, valor) => {
+            if (!confirm("Confirmar pagamento?")) return;
             const batch = writeBatch(db);
             batch.update(doc(db, "transacoes", id), { status: 'pago' });
             batch.update(doc(db, "units", uId), { balance: increment(valor) });
@@ -94,18 +110,15 @@
             await batch.commit(); location.reload();
         };
 
+        // WhatsApp
         window.notificarZap = (uId, desc, valor, venc) => {
-            const unit = unidadesMap[uId];
-            if (!unit.tel) return alert("Telefone não cadastrado!");
-            const msg = encodeURIComponent(`Olá, Conselheiro! 🛡️\n\nA dívida de *${desc}* (R$ ${valor.toFixed(2)}) da sua unidade, vencida em *${formatarData(venc)}*, está atrasada. Favor cobrar.`);
-            window.open(`https://wa.me/${unit.tel}?text=${msg}`, '_blank');
+            const tel = unidadesMap[uId].tel;
+            if (!tel) return alert("Conselheiro sem telefone!");
+            const msg = encodeURIComponent(`Olá! 🛡️ A pendência de *${desc}* (R$ ${valor.toFixed(2)}) da sua unidade venceu em ${formatarData(venc)}. Poderia verificar?`);
+            window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
         };
 
-        document.getElementById('btnExportar').onclick = () => {
-            const wb = XLSX.utils.table_to_book(document.getElementById('tabelaDados'));
-            XLSX.writeFile(wb, `Tesouraria_Clube_${formatarData(hoje).replace(/\//g, '-')}.xlsx`);
-        };
-
+        // Salvar Dívida
         document.getElementById('btnSalvar').onclick = async () => {
             const mId = document.getElementById('selectMembro').value;
             const val = parseFloat(document.getElementById('valor').value);
@@ -113,12 +126,13 @@
             batch.set(doc(collection(db, "transacoes")), {
                 descricao: document.getElementById('desc').value, valor: val, membroId: mId,
                 unidadeId: membrosMap[mId].unitId, vencimento: document.getElementById('venc').value,
-                status: 'pendente', tipo: 'entrada', dataCriacao: serverTimestamp()
+                status: 'pendente', dataCriacao: serverTimestamp()
             });
             batch.update(doc(db, "members", mId), { debt: increment(val) });
             await batch.commit(); location.reload();
         };
 
+        // Renderizar Tabela
         const carregarTabela = async () => {
             const q = query(collection(db, "transacoes"), where("status", "==", "pendente"), orderBy("vencimento", "asc"));
             const snap = await getDocs(q);
@@ -126,22 +140,31 @@
             snap.forEach(d => {
                 const i = d.data();
                 const m = membrosMap[i.membroId];
-                if (!m) return;
                 const atrasado = i.vencimento < hoje;
-                const zapBtn = atrasado ? `<button class="btn-zap" onclick="notificarZap('${i.unidadeId}','${i.descricao}',${i.valor},'${i.vencimento}')"><span class="material-symbols-outlined">chat</span></button>` : '---';
-
                 lista.innerHTML += `
                     <tr class="${atrasado ? 'linha-atrasada' : ''}">
                         <td data-label="Vencimento">${formatarData(i.vencimento)}</td>
-                        <td data-label="Membro">${m.name}<br><small>${unidadesMap[m.unitId].name}</small></td>
+                        <td data-label="Membro">${m?.name || '---'}</td>
                         <td data-label="Valor">R$ ${i.valor.toFixed(2)}</td>
-                        <td data-label="Baixa"><button class="btn-baixa" onclick="darBaixaMembro('${d.id}','${i.membroId}','${m.unitId}',${i.valor})">Baixa</button></td>
-                        <td data-label="Cobragem">${zapBtn}</td>
+                        <td data-label="Ações">
+                            <div class="action-buttons">
+                                <button class="btn-mini btn-success" onclick="darBaixa('${d.id}','${i.membroId}','${i.unidadeId}',${i.valor})"><span class="material-symbols-outlined">check</span></button>
+                                <button class="btn-mini btn-zap" onclick="notificarZap('${i.unidadeId}','${i.descricao}',${i.valor},'${i.vencimento}')"><span class="material-symbols-outlined">chat</span></button>
+                                <button class="btn-mini btn-delete" onclick="excluirTransacao('${d.id}','${i.membroId}','${i.unidadeId}',${i.valor},'${i.status}','${m?.name}')"><span class="material-symbols-outlined">delete</span></button>
+                            </div>
+                        </td>
                     </tr>`;
             });
         };
 
+        // Filtro de Busca
+        document.getElementById('buscaMembro').oninput = function () {
+            const t = this.value.toLowerCase();
+            document.querySelectorAll('#lista tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(t) ? '' : 'none');
+        };
+
         inicializar();
+        document.getElementById('btnExcel').onclick = () => XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('tabelaAdmin')), "Relatorio_IASD.xlsx");
         document.getElementById('btnCadastrarMembro').onclick = async () => {
             await addDoc(collection(db, "members"), { name: document.getElementById('membroNome').value, unitId: document.getElementById('membroUnidade').value, debt: 0 });
             location.reload();
