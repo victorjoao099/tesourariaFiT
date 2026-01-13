@@ -8,7 +8,6 @@
     --danger: #c0392b;
     --whatsapp: #25d366;
     --bg: #f4f7f6;
-    --white: #ffffff;
 }
 
 * {
@@ -24,35 +23,54 @@ body {
 }
 
 .container {
-    background: var(--white);
+    background: #fff;
     width: 100%;
     max-width: 900px;
     margin: 15px auto;
     padding: 25px;
     border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-h1,
-h2,
-h3 {
-    color: var(--primary);
-    text-align: center;
+/* Campos de Input Colorizados */
+.input-group {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;
 }
 
-/* Formulários */
 input,
 select {
     width: 100%;
     padding: 14px;
-    border: 1.5px solid #ddd;
+    border: 2px solid #ddd;
     border-radius: 10px;
     font-size: 16px;
     background-color: white;
-    margin-bottom: 10px;
 }
 
-/* Botões */
+input:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+/* Ícone de Senha DENTRO da Caixa */
+.btn-eye {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent !important;
+    border: none;
+    color: #666 !important;
+    cursor: pointer;
+    width: auto;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+/* Botões com Cores Sólidas */
 button {
     width: 100%;
     padding: 15px;
@@ -67,6 +85,10 @@ button {
     gap: 8px;
 }
 
+#btnLogin {
+    background-color: var(--primary) !important;
+    color: white !important;
+}
 .btn-success {
     background-color: var(--success) !important;
     color: white !important;
@@ -80,7 +102,6 @@ button {
 .btn-excel {
     background-color: var(--excel) !important;
     color: white !important;
-    margin: 15px 0;
 }
 
 .btn-sair {
@@ -89,11 +110,26 @@ button {
     margin-top: 20px;
 }
 
-/* Botões de Ação na Tabela */
+/* Tabela e Ações */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th,
+td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    vertical-align: middle;
+}
+
 .action-buttons {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     justify-content: flex-end;
+    align-items: center;
 }
 
 .btn-mini {
@@ -114,30 +150,8 @@ button {
     color: var(--danger) !important;
 }
 
-/* Tabela Responsiva */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-
-th,
-td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    text-align: left;
-}
-
-th {
-    background: #f8f9fa;
-    font-size: 11px;
-    text-transform: uppercase;
-    color: #666;
-}
-
 .linha-atrasada {
     background-color: #fff5f5 !important;
-    border-left: 4px solid var(--danger);
 }
 
 @media (max-width: 700px) {
@@ -166,6 +180,5 @@ th {
         font-weight: bold;
         color: #888;
         text-align: left;
-        font-size: 12px;
     }
 }
