@@ -8,6 +8,7 @@
     --danger: #c0392b;
     --whatsapp: #25d366;
     --bg: #f4f7f6;
+    --border: #d1d5db;
 }
 
 * {
@@ -32,6 +33,7 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* Inputs com bordas coloridas e posicionamento interno */
 .input-group {
     position: relative;
     width: 100%;
@@ -42,7 +44,7 @@ input,
 select {
     width: 100%;
     padding: 14px;
-    border: 2px solid #ddd;
+    border: 2px solid var(--border);
     border-radius: 10px;
     font-size: 16px;
     background-color: white;
@@ -53,6 +55,7 @@ input:focus {
     outline: none;
 }
 
+/* Ícone de Senha INTERNO */
 .btn-eye {
     position: absolute;
     right: 12px;
@@ -86,6 +89,7 @@ button {
     background-color: var(--primary) !important;
     color: white !important;
 }
+
 .btn-success {
     background-color: var(--success) !important;
     color: white !important;
@@ -107,6 +111,7 @@ button {
     margin-top: 20px;
 }
 
+/* Ações e Status */
 .badge {
     padding: 5px 10px;
     border-radius: 20px;
@@ -147,8 +152,8 @@ td {
 }
 
 .btn-mini {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     padding: 0;
     flex-shrink: 0;
@@ -168,6 +173,11 @@ td {
     opacity: 0.3;
     pointer-events: none;
     filter: grayscale(1);
+}
+
+.card-danger {
+    background-color: var(--danger) !important;
+    color: white;
 }
 
 .linha-atrasada {

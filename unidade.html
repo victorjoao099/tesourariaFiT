@@ -11,11 +11,11 @@
 <body>
     <div class="container">
         <h2 id="uNome">Buscando...</h2>
-        <div class="card-saldo" id="cardFundo">
+        <div class="card-saldo" id="cardFundo"
+            style="background: var(--primary); padding: 25px; border-radius: 12px; text-align: center; color: white; margin-bottom: 20px;">
             <h3>Saldo Atual</h3>
             <h1 id="uSaldo">R$ 0,00</h1>
         </div>
-        <h3>Dívidas da Unidade</h3>
         <table id="tabUnidade">
             <thead>
                 <tr>
@@ -27,11 +27,11 @@
             </thead>
             <tbody id="corpo"></tbody>
         </table>
-        <button id="btnSair" class="btn-sair">Sair</button>
+        <button onclick="localStorage.clear(); window.location.href='index.html';" class="btn-sair">Sair</button>
     </div>
 
     <script type="module">
-        import { auth, db } from './firebase-config.js';
+        import { db } from './firebase-config.js';
         import { doc, getDoc, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const uId = localStorage.getItem('unitId');
@@ -43,7 +43,7 @@
                 const saldo = uSnap.data().balance || 0;
                 document.getElementById('uNome').innerText = uSnap.data().name;
                 document.getElementById('uSaldo').innerText = `R$ ${saldo.toFixed(2)}`;
-                if (saldo < 0) document.getElementById('cardFundo').style.background = 'var(--danger)';
+                if (saldo < 0) document.getElementById('cardFundo').classList.add('card-danger'); //
             }
 
             const q = query(collection(db, "transacoes"), where("unidadeId", "==", uId), orderBy("vencimento", "asc"));
@@ -61,7 +61,6 @@
             });
         };
         carregar();
-        document.getElementById('btnSair').onclick = () => { localStorage.clear(); window.location.href = 'index.html'; };
     </script>
 </body>
 

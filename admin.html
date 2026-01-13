@@ -15,18 +15,18 @@
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
             <h3>Novo Membro</h3>
-            <input type="text" id="membroNome" placeholder="Nome do Desbravador">
+            <input type="text" id="membroNome" placeholder="Nome">
             <select id="membroUnidade"></select>
-            <button id="btnCadastrarMembro" class="btn-primary">Cadastrar Membro</button>
+            <button id="btnCadastrarMembro" class="btn-primary">Cadastrar</button>
         </div>
 
         <div style="background: #eef2ff; padding: 15px; border-radius: 10px; margin-bottom: 25px;">
-            <h3>Lançar Débito (Impacta Saldo)</h3>
+            <h3>Lançar Débito (Subtrai da Unidade)</h3>
             <input type="text" id="desc" placeholder="Descrição">
-            <input type="number" id="valor" placeholder="Valor R$ 0,00" step="0.01">
+            <input type="number" id="valor" placeholder="R$ 0,00" step="0.01">
             <select id="selectMembro"></select>
             <input type="date" id="venc">
-            <button id="btnSalvar" class="btn-success">Confirmar Registro</button>
+            <button id="btnSalvar" class="btn-success">Confirmar</button>
         </div>
 
         <div style="display: flex; gap: 10px; margin: 20px 0;">
@@ -47,57 +47,50 @@
             <tbody id="lista"></tbody>
         </table>
 
-        <button id="btnSair" class="btn-sair">Sair do Sistema</button>
+        <button id="btnSair" class="btn-sair">Sair</button>
     </div>
 
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { collection, doc, getDoc, getDocs, writeBatch, serverTimestamp, query, orderBy, where, addDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        const hoje = new Date().toISOString().split('T')[0];
+        const hoje = new Date().toISOString().split('T')[0]; // 2026-01-12
         const formatarData = (d) => d.split('-').reverse().join('/');
         const unidadesMap = {};
         const membrosMap = {};
 
         const inicializar = async () => {
             const snapU = await getDocs(collection(db, "units"));
-            document.getElementById('membroUnidade').innerHTML = '';
-            snapU.forEach(d => {
-                unidadesMap[d.id] = { name: d.data().name, tel: d.data().telefone || "" };
-                document.getElementById('membroUnidade').innerHTML += `<option value="${d.id}">${d.data().name}</option>`;
-            });
+            snapU.forEach(d => { unidadesMap[d.id] = { name: d.data().name, tel: d.data().telefone || "" }; });
 
             const snapM = await getDocs(collection(db, "members"));
-            document.getElementById('selectMembro').innerHTML = '<option value="">Selecionar Membro</option>';
+            const selM = document.getElementById('selectMembro');
+            selM.innerHTML = '<option value="">Membro</option>';
             snapM.forEach(d => {
                 membrosMap[d.id] = { name: d.data().name, unitId: d.data().unitId };
-                document.getElementById('selectMembro').innerHTML += `<option value="${d.id}">${d.data().name}</option>`;
+                selM.innerHTML += `<option value="${d.id}">${d.data().name}</option>`;
             });
             carregarTabela();
         };
 
-        // SALVAR: Subtrai do saldo da unidade imediatamente
+        // SALVAR: Unidade fica negativa imediatamente
         document.getElementById('btnSalvar').onclick = async () => {
             const mId = document.getElementById('selectMembro').value;
             const val = parseFloat(document.getElementById('valor').value);
             const uId = membrosMap[mId].unitId;
-
             const batch = writeBatch(db);
+
             batch.set(doc(collection(db, "transacoes")), {
                 descricao: document.getElementById('desc').value, valor: val, membroId: mId,
                 unidadeId: uId, vencimento: document.getElementById('venc').value,
                 status: 'pendente', dataCriacao: serverTimestamp()
             });
-
-            // Lógica: Unidade fica negativa (-val) e membro aumenta dívida (+val)
             batch.update(doc(db, "units", uId), { balance: increment(-val) });
             batch.update(doc(db, "members", mId), { debt: increment(val) });
-
             await batch.commit(); location.reload();
         };
 
-        // BAIXA: "Devolve" o saldo para a unidade
+        // BAIXA: Devolve o saldo à unidade
         window.darBaixa = async (id, mId, uId, valor) => {
             if (!confirm("Confirmar pagamento?")) return;
             const batch = writeBatch(db);
@@ -107,26 +100,8 @@
             await batch.commit(); location.reload();
         };
 
-        // EXCLUIR: Reverte o impacto negativo se estava pendente
-        window.excluirTransacao = async (id, mId, uId, valor, status, nome) => {
-            if (!confirm(`Excluir conta de ${nome}?`)) return;
-            const batch = writeBatch(db);
-
-            if (status === 'pendente') {
-                batch.update(doc(db, "units", uId), { balance: increment(valor) }); // Devolve o que foi tirado
-                batch.update(doc(db, "members", mId), { debt: increment(-valor) });
-            } else {
-                // Se já estava pago e foi excluído, o saldo da unidade diminui (estorno)
-                batch.update(doc(db, "units", uId), { balance: increment(-valor) });
-                batch.update(doc(db, "members", mId), { debt: increment(valor) });
-            }
-            batch.delete(doc(db, "transacoes", id));
-            await batch.commit(); location.reload();
-        };
-
         const carregarTabela = async () => {
-            const q = query(collection(db, "transacoes"), orderBy("vencimento", "asc"));
-            const snap = await getDocs(q);
+            const snap = await getDocs(query(collection(db, "transacoes"), orderBy("vencimento", "asc")));
             const lista = document.getElementById('lista');
             lista.innerHTML = '';
 
@@ -134,7 +109,7 @@
                 const i = d.data();
                 const m = membrosMap[i.membroId];
                 const isPago = i.status === 'pago';
-                const atrasado = !isPago && i.vencimento < hoje;
+                const atrasado = !isPago && i.vencimento < hoje; // Comparação com 12/01/2026
                 const btnZap = atrasado ? `<button class="btn-mini btn-zap" onclick="notificarZap('${i.unidadeId}','${i.descricao}',${i.valor},'${i.vencimento}')"><span class="material-symbols-outlined">chat</span></button>` : '';
 
                 lista.innerHTML += `
@@ -154,14 +129,8 @@
             });
         };
 
-        document.getElementById('buscaMembro').oninput = function () {
-            const t = this.value.toLowerCase();
-            document.querySelectorAll('#lista tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(t) ? '' : 'none');
-        };
-
         inicializar();
         document.getElementById('btnExcel').onclick = () => XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('tabelaDados')), "Relatorio.xlsx");
-        document.getElementById('btnSair').onclick = () => signOut(auth).then(() => window.location.href = 'index.html');
     </script>
 </body>
 
