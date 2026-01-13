@@ -32,7 +32,6 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Campos de Input Colorizados */
 .input-group {
     position: relative;
     width: 100%;
@@ -54,7 +53,6 @@ input:focus {
     outline: none;
 }
 
-/* Ícone de Senha DENTRO da Caixa */
 .btn-eye {
     position: absolute;
     right: 12px;
@@ -70,7 +68,6 @@ input:focus {
     align-items: center;
 }
 
-/* Botões com Cores Sólidas */
 button {
     width: 100%;
     padding: 15px;
@@ -110,7 +107,24 @@ button {
     margin-top: 20px;
 }
 
-/* Tabela e Ações */
+.badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.badge-pendente {
+    background-color: #ffeaa7;
+    color: #d35400;
+}
+
+.badge-pago {
+    background-color: #c6f6d5;
+    color: #27ae60;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -148,6 +162,12 @@ td {
 .btn-delete {
     background-color: transparent !important;
     color: var(--danger) !important;
+}
+
+.btn-disabled {
+    opacity: 0.3;
+    pointer-events: none;
+    filter: grayscale(1);
 }
 
 .linha-atrasada {

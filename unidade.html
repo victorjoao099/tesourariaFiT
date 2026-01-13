@@ -4,31 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Unidade - Extrato</title>
+    <title>Minha Unidade</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
     <div class="container">
-        <h2 id="uNome">Buscando unidade...</h2>
-        <div class="card-saldo">
-            <h3>Saldo em Caixa</h3>
+        <h2 id="uNome">Buscando...</h2>
+        <div class="card-saldo" id="cardFundo">
+            <h3>Saldo Atual</h3>
             <h1 id="uSaldo">R$ 0,00</h1>
         </div>
-        <button id="btnExcel" class="btn-excel"><span class="material-symbols-outlined">download</span> Baixar
-            Extrato</button>
-        <h3>Dívidas Pendentes</h3>
-        <table id="tabPendentes">
+        <h3>Dívidas da Unidade</h3>
+        <table id="tabUnidade">
             <thead>
                 <tr>
-                    <th>Data</th>
+                    <th>Vencimento</th>
                     <th>Membro</th>
-                    <th>Desc.</th>
+                    <th>Descrição</th>
                     <th>Valor</th>
                 </tr>
             </thead>
-            <tbody id="corpoPendentes"></tbody>
+            <tbody id="corpo"></tbody>
         </table>
         <button id="btnSair" class="btn-sair">Sair</button>
     </div>
@@ -36,37 +33,35 @@
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { doc, getDoc, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const uId = localStorage.getItem('unitId');
-        const formatarData = (dISO) => { if (!dISO) return "---"; const [a, m, d] = dISO.split('-'); return `${d}/${m}/${a}`; };
+        const formatarData = (d) => d.split('-').reverse().join('/');
 
         const carregar = async () => {
             const uSnap = await getDoc(doc(db, "units", uId));
             if (uSnap.exists()) {
+                const saldo = uSnap.data().balance || 0;
                 document.getElementById('uNome').innerText = uSnap.data().name;
-                document.getElementById('uSaldo').innerText = `R$ ${Number(uSnap.data().balance || 0).toFixed(2)}`;
+                document.getElementById('uSaldo').innerText = `R$ ${saldo.toFixed(2)}`;
+                if (saldo < 0) document.getElementById('cardFundo').style.background = 'var(--danger)';
             }
 
-            const q = query(collection(db, "transacoes"), where("unidadeId", "==", uId), where("status", "==", "pendente"), orderBy("vencimento", "asc"));
+            const q = query(collection(db, "transacoes"), where("unidadeId", "==", uId), orderBy("vencimento", "asc"));
             const tSnap = await getDocs(q);
             tSnap.forEach(async d => {
                 const i = d.data();
                 const mSnap = await getDoc(doc(db, "members", i.membroId));
-                document.getElementById('corpoPendentes').innerHTML += `
+                document.getElementById('corpo').innerHTML += `
                     <tr>
-                        <td data-label="Data">${formatarData(i.vencimento)}</td>
-                        <td data-label="Membro">${mSnap.data().name}</td>
-                        <td data-label="Desc.">${i.descricao}</td>
-                        <td data-label="Valor">R$ ${i.valor.toFixed(2)}</td>
+                        <td>${formatarData(i.vencimento)}</td>
+                        <td>${mSnap.data().name}</td>
+                        <td>${i.descricao}</td>
+                        <td style="color: ${i.status === 'pago' ? 'green' : 'red'}">R$ ${i.valor.toFixed(2)}</td>
                     </tr>`;
             });
         };
         carregar();
-        document.getElementById('btnExcel').onclick = () => {
-            XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('tabPendentes')), `Extrato_Unidade.xlsx`);
-        };
-        document.getElementById('btnSair').onclick = () => { localStorage.clear(); signOut(auth).then(() => window.location.href = 'index.html'); };
+        document.getElementById('btnSair').onclick = () => { localStorage.clear(); window.location.href = 'index.html'; };
     </script>
 </body>
 
