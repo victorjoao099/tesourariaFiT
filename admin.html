@@ -7,6 +7,27 @@
     <title>Admin - IASD Boa Esperança</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        /* Ajuste de alinhamento para os ícones na tabela */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            /* Centraliza os ícones na coluna de ações */
+            align-items: center;
+        }
+
+        /* Garante que as colunas tenham alinhamento vertical centralizado */
+        table td {
+            vertical-align: middle;
+        }
+
+        th:last-child,
+        td:last-child {
+            text-align: center;
+            /* Alinha o cabeçalho 'AÇÕES' com os botões */
+        }
+    </style>
 </head>
 
 <body>
@@ -35,9 +56,14 @@
 
         <hr>
 
-        <div style="display: flex; gap: 10px; margin: 15px 0;">
-            <input type="text" id="buscaMembro" placeholder="🔍 Buscar membro..." style="flex: 2; margin:0;">
-            <button id="btnExcel" class="btn-excel" style="flex: 1; margin:0;">Excel</button>
+        <div style="display: flex; gap: 10px; margin: 15px 0; align-items: center;">
+            <div style="position: relative; flex: 2;">
+                <span class="material-symbols-outlined"
+                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888;">search</span>
+                <input type="text" id="buscaMembro" placeholder="Buscar membro..."
+                    style="margin:0; padding-left: 45px;">
+            </div>
+            <button id="btnExcel" class="btn-excel" style="flex: 1; margin:0; height: 48px;">Excel</button>
         </div>
 
         <table id="tabelaAdmin">
@@ -57,15 +83,16 @@
 
     <script type="module">
         import { auth, db } from './firebase-config.js';
-        import { collection, doc, getDoc, getDocs, writeBatch, serverTimestamp, query, orderBy, where, addDoc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, doc, getDocs, writeBatch, serverTimestamp, query, orderBy, where, addDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+        // Data atual para comparação (YYYY-MM-DD)
         const hoje = new Date().toISOString().split('T')[0];
         const formatarData = (d) => d.split('-').reverse().join('/');
+
         const unidadesMap = {};
         const membrosMap = {};
 
-        // Inicialização de Dados
         const inicializar = async () => {
             const snapU = await getDocs(collection(db, "units"));
             document.getElementById('membroUnidade').innerHTML = '';
@@ -83,24 +110,6 @@
             carregarTabela();
         };
 
-        // Função de Exclusão com Estorno
-        window.excluirTransacao = async (id, mId, uId, valor, status, nome) => {
-            if (!confirm(`Excluir lançamento de ${nome}?`)) return;
-            const batch = writeBatch(db);
-
-            // Se já foi pago, retira do saldo da unidade. Se pendente, apenas limpa a dívida do membro.
-            if (status === 'pago') {
-                batch.update(doc(db, "units", uId), { balance: increment(-valor) });
-                batch.update(doc(db, "members", mId), { debt: increment(valor) }); // Reverte a baixa da dívida
-            } else {
-                batch.update(doc(db, "members", mId), { debt: increment(-valor) });
-            }
-
-            batch.delete(doc(db, "transacoes", id));
-            await batch.commit(); location.reload();
-        };
-
-        // Função de Baixa
         window.darBaixa = async (id, mId, uId, valor) => {
             if (!confirm("Confirmar pagamento?")) return;
             const batch = writeBatch(db);
@@ -110,46 +119,53 @@
             await batch.commit(); location.reload();
         };
 
-        // WhatsApp
-        window.notificarZap = (uId, desc, valor, venc) => {
-            const tel = unidadesMap[uId].tel;
-            if (!tel) return alert("Conselheiro sem telefone!");
-            const msg = encodeURIComponent(`Olá! 🛡️ A pendência de *${desc}* (R$ ${valor.toFixed(2)}) da sua unidade venceu em ${formatarData(venc)}. Poderia verificar?`);
-            window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
-        };
-
-        // Salvar Dívida
-        document.getElementById('btnSalvar').onclick = async () => {
-            const mId = document.getElementById('selectMembro').value;
-            const val = parseFloat(document.getElementById('valor').value);
+        window.excluirTransacao = async (id, mId, uId, valor, status, nome) => {
+            if (!confirm(`Excluir lançamento de ${nome}?`)) return;
             const batch = writeBatch(db);
-            batch.set(doc(collection(db, "transacoes")), {
-                descricao: document.getElementById('desc').value, valor: val, membroId: mId,
-                unidadeId: membrosMap[mId].unitId, vencimento: document.getElementById('venc').value,
-                status: 'pendente', dataCriacao: serverTimestamp()
-            });
-            batch.update(doc(db, "members", mId), { debt: increment(val) });
+            if (status === 'pago') {
+                batch.update(doc(db, "units", uId), { balance: increment(-valor) });
+                batch.update(doc(db, "members", mId), { debt: increment(valor) });
+            } else {
+                batch.update(doc(db, "members", mId), { debt: increment(-valor) });
+            }
+            batch.delete(doc(db, "transacoes", id));
             await batch.commit(); location.reload();
         };
 
-        // Renderizar Tabela
+        window.notificarZap = (uId, desc, valor, venc) => {
+            const tel = unidadesMap[uId].tel;
+            if (!tel) return alert("Conselheiro sem telefone!");
+            const msg = encodeURIComponent(`Olá! 🛡️ A pendência de *${desc}* (R$ ${valor.toFixed(2)}) venceu em ${formatarData(venc)}. Poderia verificar?`);
+            window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+        };
+
         const carregarTabela = async () => {
             const q = query(collection(db, "transacoes"), where("status", "==", "pendente"), orderBy("vencimento", "asc"));
             const snap = await getDocs(q);
             const lista = document.getElementById('lista');
+            lista.innerHTML = '';
+
             snap.forEach(d => {
                 const i = d.data();
                 const m = membrosMap[i.membroId];
-                const atrasado = i.vencimento < hoje;
+
+                // Lógica de Vencimento
+                const estaAtrasado = i.vencimento < hoje;
+
+                // Só cria o botão de WhatsApp se 'estaAtrasado' for true
+                const btnWhatsApp = estaAtrasado
+                    ? `<button class="btn-mini btn-zap" onclick="notificarZap('${i.unidadeId}','${i.descricao}',${i.valor},'${i.vencimento}')"><span class="material-symbols-outlined">chat</span></button>`
+                    : '';
+
                 lista.innerHTML += `
-                    <tr class="${atrasado ? 'linha-atrasada' : ''}">
+                    <tr class="${estaAtrasado ? 'linha-atrasada' : ''}">
                         <td data-label="Vencimento">${formatarData(i.vencimento)}</td>
                         <td data-label="Membro">${m?.name || '---'}</td>
                         <td data-label="Valor">R$ ${i.valor.toFixed(2)}</td>
                         <td data-label="Ações">
                             <div class="action-buttons">
                                 <button class="btn-mini btn-success" onclick="darBaixa('${d.id}','${i.membroId}','${i.unidadeId}',${i.valor})"><span class="material-symbols-outlined">check</span></button>
-                                <button class="btn-mini btn-zap" onclick="notificarZap('${i.unidadeId}','${i.descricao}',${i.valor},'${i.vencimento}')"><span class="material-symbols-outlined">chat</span></button>
+                                ${btnWhatsApp}
                                 <button class="btn-mini btn-delete" onclick="excluirTransacao('${d.id}','${i.membroId}','${i.unidadeId}',${i.valor},'${i.status}','${m?.name}')"><span class="material-symbols-outlined">delete</span></button>
                             </div>
                         </td>
@@ -157,18 +173,40 @@
             });
         };
 
-        // Filtro de Busca
         document.getElementById('buscaMembro').oninput = function () {
             const t = this.value.toLowerCase();
             document.querySelectorAll('#lista tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(t) ? '' : 'none');
         };
 
         inicializar();
-        document.getElementById('btnExcel').onclick = () => XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('tabelaAdmin')), "Relatorio_IASD.xlsx");
+        document.getElementById('btnExcel').onclick = () => XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('tabelaAdmin')), "Relatorio_Tesouraria.xlsx");
+
+        document.getElementById('btnSalvar').onclick = async () => {
+            const mId = document.getElementById('selectMembro').value;
+            const val = parseFloat(document.getElementById('valor').value);
+            if (!mId || isNaN(val)) return alert("Preencha todos os campos!");
+
+            const batch = writeBatch(db);
+            batch.set(doc(collection(db, "transacoes")), {
+                descricao: document.getElementById('desc').value,
+                valor: val,
+                membroId: mId,
+                unidadeId: membrosMap[mId].unitId,
+                vencimento: document.getElementById('venc').value,
+                status: 'pendente',
+                dataCriacao: serverTimestamp()
+            });
+            batch.update(doc(db, "members", mId), { debt: increment(val) });
+            await batch.commit(); location.reload();
+        };
+
         document.getElementById('btnCadastrarMembro').onclick = async () => {
-            await addDoc(collection(db, "members"), { name: document.getElementById('membroNome').value, unitId: document.getElementById('membroUnidade').value, debt: 0 });
+            const nome = document.getElementById('membroNome').value;
+            if (!nome) return alert("Digite o nome!");
+            await addDoc(collection(db, "members"), { name: nome, unitId: document.getElementById('membroUnidade').value, debt: 0 });
             location.reload();
         };
+
         document.getElementById('btnSair').onclick = () => signOut(auth).then(() => window.location.href = 'index.html');
     </script>
 </body>
