@@ -83,6 +83,31 @@
             });
             carregarTabela();
         };
+        document.getElementById('btnCadastrarMembro').onclick = async () => {
+            const nome = document.getElementById('membroNome').value;
+            const unidadeId = document.getElementById('membroUnidade').value;
+
+            // Validação básica
+            if (!nome || !unidadeId || unidadeId === "Carregando unidades...") {
+                return alert("Por favor, preencha o nome e selecione uma unidade válida!");
+            }
+
+            try {
+                console.log("Tentando cadastrar:", nome, "na unidade:", unidadeId);
+
+                await addDoc(collection(db, "members"), {
+                    name: nome,
+                    unitId: unidadeId,
+                    debt: 0 // Inicia sem dívida
+                });
+
+                alert("Membro cadastrado com sucesso!");
+                location.reload(); // Recarrega para atualizar a lista
+            } catch (error) {
+                console.error("Erro detalhado ao cadastrar membro:", error);
+                alert("Erro ao cadastrar: " + error.message);
+            }
+        };
 
         // Lógica de Saldo Negativo Automático
         document.getElementById('btnSalvar').onclick = async () => {
